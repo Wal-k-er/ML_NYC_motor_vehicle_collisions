@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sb
 import category_encoders as ce
-from imblearn.over_sampling import RandomOverSampler
+from imblearn.over_sampling import RandomOverSampler, SMOTE, ADASYN
 from imblearn.under_sampling import NearMiss
 from matplotlib import pyplot as plt
 from sklearn import exceptions
@@ -71,19 +71,19 @@ train_copy.loc[train_copy['contributing_factor_1']
                    .isin(train_copy['contributing_factor_1']
                          .value_counts()
                          .index[train_copy['contributing_factor_1']
-                         .value_counts() < 10]), 'contributing_factor_1'] = 'Other'
+                         .value_counts() < 10]), 'contributing_factor_1'] = 'Unknown'
 
 train_copy.loc[train_copy['contributing_factor_2'] \
                    .isin(train_copy['contributing_factor_2']
                          .value_counts()
                          .index[train_copy['contributing_factor_2']
-                         .value_counts() < 10]), 'contributing_factor_2'] = 'Other'
+                         .value_counts() < 10]), 'contributing_factor_2'] = 'Unknown'
 
 print(train_copy['contributing_factor_1'].value_counts())
 print(train_copy['contributing_factor_2'].value_counts())
 
-train_copy.loc[train_copy['person_age'] < 0.0] = train_copy['person_age'].mean()
-train_copy.loc[train_copy['person_age'] > 100.0] = train_copy['person_age'].mean()
+train_copy['person_age'].loc[train_copy['person_age'] < 0.0] = np.median(train_copy['person_age'])
+train_copy['person_age'].loc[train_copy['person_age'] > 100.0] = np.median(train_copy['person_age'])
 
 train_copy['age_category'] = pd.cut(train_copy['person_age'], bins=[0, 26, 35, 60, np.inf],
                                     labels=['Юный (<26)', 'Взрослый (26-35)', 'Взрослый (35-60)', 'Пожилой']) \
@@ -209,13 +209,14 @@ def get_class_weights(y_not_balanced):
     return compute_class_weight('balanced', classes=np.unique(y_not_balanced), y=y_not_balanced)
 
 
-# Метод недостаточной выборки (случайное удаление и удаление схожих со строками класса-меньшинства )
-def balance_train(x_for_balance, y_for_balance):
-    nm = NearMiss()
-    return nm.fit_resample(x_for_balance, y_for_balance.ravel())
+# Метод, который генерирует искусственные примеры класса-меньшинства с помощью интерполяции
+# (нахождения промежуточных значений) между близлежащими примерами минорного класса.
+def adasyn(x_for_balance, y_for_balance):
+    oversample = ADASYN()
+    return oversample.fit_resample(x_for_balance, y_for_balance)
 
 
-# Метод увеличения выборки посредством копирования из класса-меньшинства
+# Метод увеличения выборки посредством случайного копирования из класса-меньшинства
 def get_over_sampled(over_x, over_y):
     ros = RandomOverSampler()
     return ros.fit_resample(over_x, over_y)
@@ -244,7 +245,7 @@ def logistic_regression(df_x, df_test_x, df_y, df_test_y, weigts=-1):
     if weigts is -1:
         model = LogisticRegression()
     else:
-        model = LogisticRegression(max_iter=4000, class_weight=dict(enumerate(weigts)))
+        model = LogisticRegression(class_weight=dict(enumerate(weigts)))
 
     parameters = {
         'solver': ['lbfgs', 'liblinear'],
@@ -479,12 +480,19 @@ def teach_models(train_x, test_x, train_y, test_y, weights=-1):
     return acc_array, sens_array, spec_array, roc_auc_array
 
 
-label = 'One hot encoding балансированные NearMiss'
+label = 'One hot encoding балансированные AdaSyn'
 print(label)
 
 train_x, test_x, train_y, test_y = get_train_test(X, Y)
 
-train_balanced_x, train_balanced_y = balance_train(train_x, train_y)
+train_balanced_x, train_balanced_y = adasyn(train_x, train_y)
+
+train_for_shape = train_balanced_x.copy()
+
+train_for_shape['person_injury'] = train_balanced_y.copy()
+
+
+print('Размер обучающей выборки с применением One hot encoding и балансированной AdaSyn\n', train_for_shape.shape)
 
 accuracy_array, sensivity_array, specifity_array, auc_array = \
     teach_models(train_balanced_x, test_x,
@@ -499,6 +507,11 @@ train_over_x, test_over_x, train_over_y, test_over_y = get_train_test(X, Y)
 
 train_over_x, train_over_y = get_over_sampled(train_over_x, train_over_y)
 
+train_for_shape = train_over_x.copy()
+train_for_shape['person_injury'] = train_over_y.copy()
+
+print('Размер обучающей выборки с применением One hot encoding и балансированной OverSampling\n', train_for_shape.shape)
+
 accuracy_array, sensivity_array, specifity_array, auc_array = \
     teach_models(train_over_x, test_over_x,
                  train_over_y, test_over_y)
@@ -512,6 +525,12 @@ train_ord_x, test_ord_x, train_ord_y, test_ord_y = get_train_test(X_ord, Y_ord)
 
 weights = get_class_weights(train_ord_y)
 
+train_for_shape = train_ord_x.copy()
+train_for_shape['person_injury'] = train_ord_y.copy()
+
+print('Размер обучающей выборки с применением Ordinal Encoder без балансировки\n', train_for_shape.shape)
+
+print('Веса классов:', weights)
 accuracy_array, sensivity_array, specifity_array, auc_array = \
     teach_models(train_over_x, test_over_x,
                  train_over_y, test_over_y, weights)
