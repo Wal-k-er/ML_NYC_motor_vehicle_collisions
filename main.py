@@ -4,8 +4,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sb
 import category_encoders as ce
-from imblearn.over_sampling import RandomOverSampler, SMOTE, ADASYN
-from imblearn.under_sampling import NearMiss
+from imblearn.over_sampling import RandomOverSampler, ADASYN
 from matplotlib import pyplot as plt
 from sklearn import exceptions
 
@@ -490,7 +489,6 @@ train_balanced_x, train_balanced_y = adasyn(train_x, train_y)
 train_for_shape = train_balanced_x.copy()
 
 train_for_shape['person_injury'] = train_balanced_y.copy()
-
 
 print('Размер обучающей выборки с применением One hot encoding и балансированной AdaSyn\n', train_for_shape.shape)
 
