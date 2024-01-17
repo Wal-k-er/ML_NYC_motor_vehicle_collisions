@@ -233,10 +233,12 @@ def get_metrics(test_x, test_y, pred_y, best_model):
     print(r'Специфичность: %.3f' % specificity)
     preds = best_model.predict(test_x)
 
+    f_1 = 2*(sensitivity*specificity)/(specificity+sensitivity)
+    print(r'F1: %.3f' % f_1)
     fpr, tpr, threshold = roc_curve(test_y, preds)
     roc_auc = auc(fpr, tpr)
     print(r'AUC: %.3f' % roc_auc)
-    return sensitivity, specificity, roc_auc
+    return sensitivity, specificity, roc_auc, f_1
 
 
 def logistic_regression(df_x, df_test_x, df_y, df_test_y, weigts=-1):
@@ -261,9 +263,9 @@ def logistic_regression(df_x, df_test_x, df_y, df_test_y, weigts=-1):
     y_pred_grid = best_logistic_model.predict(df_test_x)
     print(classification_report(y_true=df_test_y, y_pred=y_pred_grid))
 
-    sens, spec, roc = get_metrics(df_test_x, df_test_y, y_pred_grid, best_logistic_model)
+    sens, spec, roc, f_1 = get_metrics(df_test_x, df_test_y, y_pred_grid, best_logistic_model)
 
-    return accuracy, sens, spec, roc
+    return accuracy, sens, spec, roc, f_1
 
 
 def tree_classifier(df_x, df_test_x, df_y, df_test_y, weigts=-1):
@@ -288,9 +290,9 @@ def tree_classifier(df_x, df_test_x, df_y, df_test_y, weigts=-1):
     y_pred_tree_grid = best_tree_model.predict(df_test_x)
     print(classification_report(y_true=df_test_y, y_pred=y_pred_tree_grid))
 
-    sens, spec, roc = get_metrics(df_test_x, df_test_y, y_pred_tree_grid, best_tree_model)
+    sens, spec, roc, f_1 = get_metrics(df_test_x, df_test_y, y_pred_tree_grid, best_tree_model)
 
-    return accuracy, sens, spec, roc
+    return accuracy, sens, spec, roc, f_1
 
 
 def svc(df_x, df_test_x, df_y, df_test_y, weigts=-1):
@@ -306,9 +308,9 @@ def svc(df_x, df_test_x, df_y, df_test_y, weigts=-1):
 
     accuracy = round(accuracy_score(df_test_y, y_pred), 3)
     print(f'Верность (Acc) лучшей модели: {accuracy}')
-    sens, spec, roc = get_metrics(df_test_x, df_test_y, y_pred, model)
+    sens, spec, roc, f_1 = get_metrics(df_test_x, df_test_y, y_pred, model)
 
-    return accuracy, sens, spec, roc
+    return accuracy, sens, spec, roc, f_1
 
 
 def gradient_boosting(df_x, df_test_x, df_y, df_test_y, weigts=-1):
@@ -339,9 +341,9 @@ def gradient_boosting(df_x, df_test_x, df_y, df_test_y, weigts=-1):
     y_pred_grid = best_model.predict(df_test_x)
     print(classification_report(y_true=df_test_y, y_pred=y_pred_grid))
 
-    sens, spec, roc = get_metrics(df_test_x, df_test_y, y_pred_grid, best_model)
+    sens, spec, roc, f_1 = get_metrics(df_test_x, df_test_y, y_pred_grid, best_model)
 
-    return accuracy, sens, spec, roc
+    return accuracy, sens, spec, roc, f_1
 
 
 def perceptron(df_x, df_test_x, df_y, df_test_y, weigts=-1):
@@ -366,9 +368,9 @@ def perceptron(df_x, df_test_x, df_y, df_test_y, weigts=-1):
     y_pred_grid = best_model.predict(df_test_x)
     print(classification_report(y_true=df_test_y, y_pred=y_pred_grid))
 
-    sens, spec, roc = get_metrics(df_test_x, df_test_y, y_pred_grid, best_model)
+    sens, spec, roc, f_1 = get_metrics(df_test_x, df_test_y, y_pred_grid, best_model)
 
-    return accuracy, sens, spec, roc
+    return accuracy, sens, spec, roc, f_1
 
 
 def random_forest(df_x, df_text_x, df_y, df_test_y, weigts=-1):
@@ -395,9 +397,9 @@ def random_forest(df_x, df_text_x, df_y, df_test_y, weigts=-1):
     y_pred_grid = best_model.predict(df_text_x)
     print(classification_report(y_true=df_test_y, y_pred=y_pred_grid))
 
-    sens, spec, roc = get_metrics(df_text_x, df_test_y, y_pred_grid, best_model)
+    sens, spec, roc, f_1 = get_metrics(df_text_x, df_test_y, y_pred_grid, best_model)
 
-    return accuracy, sens, spec, roc
+    return accuracy, sens, spec, roc, f_1
 
 
 def hist_gradient(df_x, df_test_x, df_y, df_test_y, weigts=-1):
@@ -421,19 +423,20 @@ def hist_gradient(df_x, df_test_x, df_y, df_test_y, weigts=-1):
     best_model = grid.best_estimator_
     y_pred_grid = best_model.predict(df_test_x)
     print(classification_report(y_true=df_test_y, y_pred=y_pred_grid))
-    sens, spec, roc = get_metrics(df_test_x, df_test_y, y_pred_grid, best_model)
+    sens, spec, roc, f_1 = get_metrics(df_test_x, df_test_y, y_pred_grid, best_model)
 
-    return accuracy, sens, spec, roc
+    return accuracy, sens, spec, roc, f_1
 
 
-def plot_metrics(accuracies, sensivities, specifities, aucs, label, plot_num):
+def plot_metrics(accuracies, sensivities, specifities, aucs, f1, label, plot_num):
     x = np.arange(len(accuracy_array))
-    width = 0.2
+    width = 0.15
     plt.subplot(3, 1, plot_num)
-    plt.bar(x - 0.4, accuracies, width=width)
-    plt.bar(x - 0.2, sensivities, width=width)
+    plt.bar(x - 0.3, accuracies, width=width)
+    plt.bar(x - 0.15, sensivities, width=width)
     plt.bar(x, specifities, width=width)
-    plt.bar(x + 0.2, aucs, width=width)
+    plt.bar(x + 0.15, f1, width=width)
+    plt.bar(x + 0.3, aucs, width=width)
 
     plt.xlabel(label)
     plt.xticks(x, ['Логистическая регрессия', 'Дерево решений', 'Перцептрон', 'SVM', 'Hist градиент',
@@ -441,6 +444,7 @@ def plot_metrics(accuracies, sensivities, specifities, aucs, label, plot_num):
     plt.legend(['accuracy',
                 'sensivity',
                 'specifity',
+                'f1',
                 'auc'])
 
 
@@ -449,34 +453,35 @@ def teach_models(train_x, test_x, train_y, test_y, weights=-1):
     sens_array = [0] * 7
     spec_array = [0] * 7
     roc_auc_array = [0] * 7
-    acc_array[0], sens_array[0], spec_array[0], roc_auc_array[0] = \
+    f_1_array = [0] * 7
+    acc_array[0], sens_array[0], spec_array[0], roc_auc_array[0], f_1_array[0] = \
         logistic_regression(train_x, test_x,
                             train_y, test_y, weights)
 
-    acc_array[1], sens_array[1], spec_array[1], roc_auc_array[1] = \
+    acc_array[1], sens_array[1], spec_array[1], roc_auc_array[1], f_1_array[1] = \
         tree_classifier(train_x, test_x,
                         train_y, test_y, weights)
 
-    acc_array[2], sens_array[2], spec_array[2], roc_auc_array[2] = \
+    acc_array[2], sens_array[2], spec_array[2], roc_auc_array[2], f_1_array[2] = \
         perceptron(train_x, test_x,
                    train_y, test_y, weights)
 
-    acc_array[3], sens_array[3], spec_array[3], roc_auc_array[3] = \
+    acc_array[3], sens_array[3], spec_array[3], roc_auc_array[3], f_1_array[3] = \
         svc(train_x, test_x,
             train_y, test_y, weights)
 
-    acc_array[4], sens_array[4], spec_array[4], roc_auc_array[4] = \
+    acc_array[4], sens_array[4], spec_array[4], roc_auc_array[4], f_1_array[4] = \
         hist_gradient(train_x, test_x,
                       train_y, test_y, weights)
 
-    acc_array[5], sens_array[5], spec_array[5], roc_auc_array[5] = \
+    acc_array[5], sens_array[5], spec_array[5], roc_auc_array[5], f_1_array[5] = \
         gradient_boosting(train_x, test_x,
                           train_y, test_y, weights)
 
-    acc_array[6], sens_array[6], spec_array[6], roc_auc_array[6] = \
+    acc_array[6], sens_array[6], spec_array[6], roc_auc_array[6], f_1_array[6] = \
         random_forest(train_x, test_x,
                       train_y, test_y, weights)
-    return acc_array, sens_array, spec_array, roc_auc_array
+    return acc_array, sens_array, spec_array, roc_auc_array, f_1_array
 
 
 label = 'One hot encoding балансированные AdaSyn'
@@ -492,11 +497,11 @@ train_for_shape['person_injury'] = train_balanced_y.copy()
 
 print('Размер обучающей выборки с применением One hot encoding и балансированной AdaSyn\n', train_for_shape.shape)
 
-accuracy_array, sensivity_array, specifity_array, auc_array = \
+accuracy_array, sensivity_array, specifity_array, auc_array, f1_array = \
     teach_models(train_balanced_x, test_x,
                  train_balanced_y, test_y)
 
-plot_metrics(accuracy_array, sensivity_array, specifity_array, auc_array, label, 1)
+plot_metrics(accuracy_array, sensivity_array, specifity_array, auc_array, f1_array, label, 1)
 
 label = 'One hot encoding балансированные OverSampling'
 print(label)
@@ -510,11 +515,11 @@ train_for_shape['person_injury'] = train_over_y.copy()
 
 print('Размер обучающей выборки с применением One hot encoding и балансированной OverSampling\n', train_for_shape.shape)
 
-accuracy_array, sensivity_array, specifity_array, auc_array = \
+accuracy_array, sensivity_array, specifity_array, auc_array, f1_array = \
     teach_models(train_over_x, test_over_x,
                  train_over_y, test_over_y)
 
-plot_metrics(accuracy_array, sensivity_array, specifity_array, auc_array, label, 2)
+plot_metrics(accuracy_array, sensivity_array, specifity_array, auc_array, f1_array, label, 2)
 
 label = 'Ordinal Encoder с использованием взвешивания классов'
 print(label)
@@ -529,10 +534,10 @@ train_for_shape['person_injury'] = train_ord_y.copy()
 print('Размер обучающей выборки с применением Ordinal Encoder без балансировки\n', train_for_shape.shape)
 
 print('Веса классов:', weights)
-accuracy_array, sensivity_array, specifity_array, auc_array = \
+accuracy_array, sensivity_array, specifity_array, auc_array, f1_array = \
     teach_models(train_over_x, test_over_x,
                  train_over_y, test_over_y, weights)
 
-plot_metrics(accuracy_array, sensivity_array, specifity_array, auc_array, label, 3)
+plot_metrics(accuracy_array, sensivity_array, specifity_array, auc_array, f1_array, label, 3)
 
 plt.show()
